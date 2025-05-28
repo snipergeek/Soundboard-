@@ -130,7 +130,7 @@
   </div>
 
   <script>
-    const MAX_NON_PREMIUM_DURATION = 50;
+    const MAX_NON_PREMIUM_DURATION = 20;
     const MAX_PREMIUM_DURATION = 120;
     const MAX_SONS_NON_PREMIUM = 10;
     let CODES_VALIDES = JSON.parse(localStorage.getItem("codes_valides")) || [];
@@ -173,7 +173,7 @@
         document.getElementById("premium-banner").style.display = "block";
         document.getElementById("premium-section").style.display = "none";
       } else {
-        infos.innerText = `🔒 Version gratuite : max ${MAX_SONS_NON_PREMIUM} sons / Durée max : 50 secondes.`;
+        infos.innerText = `🔒 Version gratuite : max ${MAX_SONS_NON_PREMIUM} sons / Durée max : 20 secondes.`;
         document.getElementById("premium-banner").style.display = "none";
         document.getElementById("premium-section").style.display = "block";
       }

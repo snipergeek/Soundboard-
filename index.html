@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Soundboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">  const MAX_FREE_DURATION = 30;
+
+    document.getElementById("sound-file").addEventListener("change", () => {
+      const file = document.getElementById("sound-file").files[0];
+      if (!file) return;
+      const audioURL = URL.createObjectURL(file);
+      const audio = new Audio(audioURL);
+      audio.onloadedmetadata = () => {
+        const duration = audio.duration;
+        if (localStorage.getItem("premium") !== "true" && duration > MAX_FREE_DURATION) {
+          alert("⛔ Ce fichier dure " + Math.round(duration) + " secondes. Limite en gratuit : 10 secondes.");
+          document.getElementById("sound-file").value = "";
+        }
+      };
+    });
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Fredoka', sans-serif;
+      background: #fff4d6;
+      color: #333;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #ff9800;
+    }
+    .premium-banner {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: gold;
+      padding: 8px 12px;
+      border-radius: 12px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.3);
+      font-weight: bold;
+      display: none;
+    }
+    .sound img {
+      width: 1mm;
+      height: 1mm;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    #admin-toggle {
+      position: fixed;
+      bottom: 0;
+      right: 0;
+      width: 2cm;
+      height: 2cm;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      opacity: 0;
+    }
+    #admin-panel {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #fff3e0;
+      border: 1px solid #ccc;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    input, button {
+      font-size: 16px;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin: 5px 0;
+    }
+    button {
+      background: #ffb74d;
+      border: none;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      transform: scale(1.05);
+      background: #ffa726;
+    }
+  </style>
+</head>
+<body>
+  <div class="premium-banner" id="premium-banner">🌟 Premium activé</div>
+  <h1>🎵 Soundboard 🎵</h1>
+
+  <div id="infos"></div>
+  <div id="soundboards-tabs"></div>
+
+  <input id="new-board-name" placeholder="Nom du nouveau soundboard">
+  <button onclick="createNewBoard()">Créer</button>
+  <hr>
+
+  <input id="sound-name" placeholder="Nom du son">
+  <input type="file" id="sound-file" accept="audio/*">
+  <input type="file" id="sound-image" accept="image/*">
+  <button onclick="addSound()">Ajouter le son</button>
+
+  <div id="soundboards-container"></div>
+  <hr>
+
+  <button onclick="exportJSON()">📤 Exporter</button>
+  <input type="file" onchange="importJSON(event)">
+
+  <div id="premium-section">
+    <input id="premium-code" placeholder="Code Premium">
+    <button onclick="activerPremium()">Activer Premium</button>
+  </div>
+
+  <button id="admin-toggle" onclick="document.getElementById('admin-panel').style.display = 'block'"></button>
+  <div id="admin-panel">
+    <input id="admin-user" placeholder="Admin utilisateur">
+    <input id="admin-pass" placeholder="Mot de passe" type="password">
+    <button onclick="verifierAdmin()">Connexion</button>
+    <div id="code-gen-section" style="display:none">
+      <button onclick="genererCode()">Générer un code premium</button>
+      <div id="dernier-code"></div>
+    </div>
+  </div>
+
+  <script>
+    // Configuration Firebase (ta vraie config)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDxX8CdXULCeUD6wTxW5JgjDOSXp131SRI",
+      authDomain: "sounboard-admim-code.firebaseapp.com",
+      databaseURL: "https://sounboard-admim-code-default-rtdb.firebaseio.com",
+      projectId: "sounboard-admim-code",
+      storageBucket: "sounboard-admim-code.firebasestorage.app",
+      messagingSenderId: "1030888923983",
+      appId: "1:1030888923983:web:febe2c0141075c23cd1b3a",
+      measurementId: "G-FX08H0MDNP"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function genererCode() {
+      const charset = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      let code = '';
+      for (let i = 0; i < 28; i++) {
+        code += charset[Math.floor(Math.random() * charset.length)];
+      }
+      db.ref("codes/" + code).set(true);
+      document.getElementById("dernier-code").innerText = "Code généré : " + code;
+    }
+
+    function activerPremium() {
+      const code = document.getElementById("premium-code").value.trim();
+      db.ref("codes/" + code).once("value", snapshot => {
+        if (snapshot.exists()) {
+          localStorage.setItem("premium", "true");
+          db.ref("codes/" + code).remove();
+          alert("🎉 Premium activé !");
+          document.getElementById("premium-section").style.display = "none";
+          document.getElementById("premium-banner").style.display = "block";
+          afficherPremium();
+        } else {
+          alert("❌ Code invalide !");
+        }
+      });
+    }
+
+    function afficherPremium() {
+      const infos = document.getElementById("infos");
+      if (localStorage.getItem("premium") === "true") {
+        infos.innerText = "✅ Premium activé — Durée max : 2 minutes.";
+        document.getElementById("premium-banner").style.display = "block";
+        document.getElementById("premium-section").style.display = "none";
+      } else {
+        infos.innerText = "🔒 Version gratuite : max 10 sons / Durée max : 10 secondes.";
+        document.getElementById("premium-banner").style.display = "none";
+        document.getElementById("premium-section").style.display = "block";
+      }
+    }
+
+    function verifierAdmin() {
+      const user = document.getElementById("admin-user").value;
+      const pass = document.getElementById("admin-pass").value;
+      if (user === "7K2@9F48W3M" && pass === "D5N82VM@T9Q") {
+        document.getElementById("code-gen-section").style.display = "block";
+      } else {
+        alert("Accès refusé");
+      }
+    }
+
+    afficherPremium();
+  </script>
+</body>
+</html>
